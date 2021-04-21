@@ -1,0 +1,55 @@
+#!/bin/sh
+# Example script to remove all ports
+#
+# Usage - cleanports
+# Removes all TruePort configuration.
+#
+
+# Product Directory
+PD=/etc/trueport/
+
+#
+# Delete any port monitors for TruePort
+#
+ 
+echo "You need to disable all relevant getty processes before proceeding."
+echo -n  "Continue? [y|n] (default n): "
+read ans
+if [ "${ans}" != "y" ]
+then
+        echo "Aborting $0"
+        exit
+fi
+echo "$0 continuing..."
+ 
+#
+# Kill TruePort daemons
+#
+echo Killing trueportd. 
+killall trueportd
+ 
+#
+# Clean config.tp
+#
+mv $PD/config.tp $PD/config.tp.old
+grep "^#" $PD/config.tp.old > $PD/config.tp
+echo Removed all entries from config.tp
+
+#
+#	Clean sslcfg.tp
+#
+
+mv $PD/sslcfg.tp $PD/sslcfg.tp.old
+grep "^#" $PD/sslcfg.tp.old > $PD/sslcfg.tp
+echo Removed all entries from sslcfg.tp
+
+#
+#	Clean pktfwdcfg.tp
+#
+
+mv $PD/pktfwdcfg.tp $PD/pktfwdcfg.tp.old
+grep "^#" $PD/pktfwdcfg.tp.old > $PD/pktfwdcfg.tp
+echo Removed all entries from pktfwdcfg.tp
+
+echo "$0 complete"
+

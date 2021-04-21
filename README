@@ -1,0 +1,241 @@
+============================================================================
+           Perle TruePort Daemon and  Driver for Linux
+           Copyright (C) 2004-2020, Perle Systems Limited
+=============================================================================
+
+  Release           : 6.10.1
+  Date              : May 2020
+  O/S Compatibility : Linux Versions 2.6.x, 3.x, 4.x, 5.x
+
+=============================================================================
+
+Introduction: 
+=============
+
+This is the readme belonging to the TruePort for Linux software. 
+
+
+TruePort for Linux is a TTY serial port emulation system for the 
+Perle device/terminal server families. TruePort provides a standard
+TTY interface to application software which is achieved using the
+TruePort serial device driver.
+
+TruePort provides a more general interface via a fixed /dev TTY name,
+this allows application software to send and receive data from ports on the
+terminal server as if they were directly connected to the application server.
+
+
+TruePort Full mode protocol will allow an application to take full control of the 
+remote serial port and use all functions available e.g. setting baud rates, flow
+control settings and raising and lowering modem pins etc.
+
+TruePort Lite Mode will allow an application to just transmit and receive data 
+to and from the port.  Any baud rates or flow control settings must be 
+configured on the terminal server before the application is started.
+
+TruePort supports the following Perle hardware in TruePort Full mode
+protocol:
+    - All IOLAN Family Models, including DS, TS, SDS, STS, SCS
+    - JetStream 8500, JetStream 4000
+    - LanStream 2000
+    - LinkStream 2000.
+
+It also supports IOLAN+ and other 3rd party multi-port terminal servers in Lite
+(raw) mode.
+
+NOTE: 	
+For TruePort Full Mode the JetStream 8500, JetStream 4000 and LanStream 2000 
+require firmware version 2.3.3 or later and the LinkStream 2000 requires 
+version 6.04 or later.
+
+
+Installation and Configuration:
+===============================
+
+The software consist of two parts. The part that allows a user-program
+to control a fully-functional serial port is a driver in the form of a  new 
+loadable kernel driver.
+
+The other part is the daemon that handles the connection between the
+kernel driver and a device/terminal server.
+
+Installation using the .tgz file
+--------------------------------
+
+Unpack the file and go to the created directory. In the directory run 
+the script:
+
+   ./tar_install.sh
+
+TruePort administrative files and utilities are installed in the /etc/trueport 
+and /usr/bin directories.
+
+To create and enable a range of ports we have provided a script "addports"
+that starts the TruePort service. The "addports" command edits the TruePort 
+configuration files and starts the required daemons and drivers.  
+
+Once the "addports" command has configured the system, TruePort will be started 
+automatically on each system reboot.
+
+Once the ports have been enabled, you may use them as standard UNIX serial TTY's.
+
+See the TruePort Linux User Guide for more information on the use of this 
+script and other configuration utilities.
+
+
+Notes for installing large number of ports:
+===========================================
+ * The maximum number of ports supported by TruePort server-initiated is  
+   64,512.(which is 65535-1023 ).  
+ * On most Linux systems the default Process Identifiers Limit is set to 32K. 
+   To display the current Process Identifiers Limit on your system type the 
+	following command at the shell prompt:
+      $ sysctl kernel.pid_max
+        OR
+      $ cat /proc/sys/kernel/pid_max
+   Output:
+      kernel.pid_max = 32768
+   The Perle TruePort driver uses a process per port so if you are installing a
+   large number of ports it is possible you will need more process ID's then
+   the default limit.  To allow for more PIDs type the following command:
+      $ sysctl -w kernel.pid_max=80000
+   To make the change survive a system reboot you will need to append the 
+	following to your /etc/sysctl.conf:
+      kernel.pid_max = 80000
+ * If you install a large number of ports then your boot up time may be 
+   significanly increased. This boot time can be reduced if udev is disabled.
+
+	
+Kernel update:
+==============
+When a new kernel version is installed on the machine the TruePort rpm
+package has to be reinstalled to get the correct kernel module for the
+new kernel. The commands to do this are:
+
+   cd /usr/share/doc/trueport/ptyx
+   make
+   make install
+
+and 
+   depmod -a
+   /etc/init.d/trueport restart
+or
+   reboot the machine
+
+or you can simply rebuild and reinstall the rpm package. (Keep in mind
+that you'll have to build the package running on the kernel that will
+eventually run it)
+
+
+Known Issues:
+=============
+
+
+Release History:
+================
+
+Version     Description
+-------     -----------
+6.10.0      * Maintenance release
+6.9.1       * Fix for Redhat 7.6 update 12.2
+6.9.0       * Maintenance release
+            * Added OpenSSL 1.1.x support
+6.8.5       * Fix lockup condition
+6.8.4       * Fix build issue with 4.12.x kernels
+6.8.3       * Fix stack corruption issue in trueportd
+6.8.2       * Fix issue with packet idle timeout forwarding option not working
+6.8.1       * Fix issue with keep alive not working correctly
+6.8.0       * Maintenance release
+            * fixed issue with stty settings not being sent to the IOLAN
+6.7.10      * Fix to work with 4.6.x kernels
+6.7.9       * Fix for tty lockup while waiting for the TCP connection 
+              during an open.
+6.7.8       * Fix to work with 3.8.x kernels
+6.7.7       * Changed the tty master name to txm and control name to txc
+              to fix a conflict on Ubuntu.
+6.7.6       * Fix for port lockup and starting trueportd twice issues.
+            * Removed debug code.
+6.7.5       * Added some debug code.
+6.7.4       * Additional fixes for scheduling while atomic crash.
+6.7.3       * Fix for scheduling while atomic crash.
+6.7.2       * Fix for a port lockup condition.
+6.7.1       * Added some debug code.
+6.7.0       * Maintenance release
+6.6.4       * Added support for kernel 3.12
+6.6.3       * Fix issue with trueportd using 100 percent of the cpu
+6.6.2       * Fix issue with tcdrain not working.
+6.6.1       * Fix issue with driver sometimes crashing when the TCP connection
+              goes down.
+6.6.0       * Added some tty port code to support kernels 3.7 and 3.8
+6.5.2       * Maintenance release, added support for kernel version 3.7
+6.5.1       * Maintenance release, added support for kernel version 3.x
+6.5.0       * Maintenance release, only the version changed
+6.4.8       * Fix issue with driver crashing when using PPP
+6.4.7       * Added support for kernel 2.6.34.
+6.4.6       * Corrected problem with pacing window closing during heavy traffic.
+6.4.5       * Added back the strong SSL encryption ciphers.
+              Added code to make the setting of the modprobe.conf file
+              more compatible with upgrading.
+6.4.104     * Added "openwaittime -1" option to server initiated lite mode
+6.4.103     * Corrected the "openwaittime -1" option
+6.4.102     * Corrected problem with compiling in kernel versions less than
+              2.6.9.
+6.4.101     * Corrected problem with form of receive_room function/variable.
+6.4.100     * Removed strong SSL encryption ciphers to satisfy U.S. export 
+              requirements.
+6.4.0       * TruePort driver redesigned where the master and slave driver's are 
+              now defined as TTY_DRIVER_TYPE_SERIAL instead of TTY_DRIVER_TYPE_PTY.
+            * Support for 2.6.x kernels only.
+            * Remove restriction of supporting maximum of 256 ports.
+            * Resolve issue where device server and TruePort Full mode window 
+              count would get out of sync when several read flush commands are
+              sent to the device server.
+6.3.1       * Fix issue runing on kernel versions 2.6.26.x where application 
+              opening TruePort tty would segment fault
+6.3.0       * Added configuration to allow use of legacy UDP protocol for Full 
+              mode
+            * Resolve issues with TruePort Daemon being terminated in certain 
+              circumstances when running Full mode protocol and the TruePort 
+              connection is repeatedly going down and up.
+            * Will use /etc/modprobe.d directory if /etc/modprobe.conf file does
+              not exist when adding driver modules
+6.2.2       * Resolve compile errors and warnings on kernels 2.6.27 and higher
+            * Resolve RPM install error for Fedora Core 8
+6.2.1       * Resolve issue with PPC64 and SPARC64 systems failing to process
+              TruePort private IOCTLs properly.
+            * added some paranoia checking in ptyx.c for out driver_data pointer
+6.2.0       * Detection and support of running TruePort Full mode with no UDP 
+              protocol
+            * resolved some IPv6 configuration issues
+6.1.1       * Resolve kernel panic during system boot up on certain 2.6 
+              kernel distributions.
+6.1.0       * Added support for missing "serial driver" functions.
+6.0.1       * Resolved timing issue where TruePort service would sometimes fail
+              to start on bootup
+6.0.0       * Added Client initiated mode, Client I/O Access, and 
+              Packet Forwarding features.
+            * Added support to specify host IP address or DNS name for
+              server mode
+            * Added support for 64 bit Linux Kernels
+5.1.0       * Maintenance release
+5.0.4       * Resolved issue with driver not compiling under kernels 2.6.16 
+             and higher.
+5.0.3       * Switched code to open the tty first before listening on the 
+              tcp port.
+5.0.2       * Added code to ptyx driver to send a line to the 
+              /var/log/message file when the driver is loaded.
+5.0.1       * Added hangup option to allow trueportd to close the tty 
+              device whenever the TCP connection to the terminal/device 
+              server is lost. 
+5.0.0       * Added support for SSL connection feature. 
+            * The version number jumped from 2.3 to 5.0.0 so that all 
+              versions of TruePort with SSL would be at the same level.
+            * The SSL feature is not supported in kernel 2.2.x. The software
+              can still be installed without this feature.
+2.3         * Add support for the linux kernel 2.6.
+            * Add support for linux kernel 2.2.16 and above.
+2.2         * Driver became an independent loadable kernel module for 
+              the kernel version 2.4.x.  No need to patch and rebuild the 
+              kernel. 
+2.0         * Consisted of the TruePort daemon and a patch to the pty.c
+              driver module in the kernel.

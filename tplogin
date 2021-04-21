@@ -1,0 +1,145 @@
+#!/bin/sh
+#
+# File:			tplogin
+#
+# Copyright (c) 1999-2009 by Perle Systems Limited. All rights reserved.
+#
+#
+# Add, enable, disable or remove getty login for a specified port.
+#
+# Arguments are:
+#
+#  $1 - -a (add), -r (remove), -e (enable), -d (disable) -l (list)
+#  $2 - port #: 
+#  $3 - baud rate
+#
+
+#
+# Set up globals
+#
+DEFLABEL="9600"		# Default baud rate
+TTYPRE="tty"		# Port name prefix
+INIT_FILE="/tmp/init.tp"
+TMPDIR="/tmp"
+
+Usage ()
+{
+	echo "Usage:"
+	echo " Add:"
+	echo "  $0 -a <port #> [<baud_rate>]"
+	echo " Enable, Disable, Remove:"
+	echo "  $0 -e|-d|-r <port #>"
+	echo " List:"
+	echo "  $0 -l"
+	exit 1
+}
+
+# Copy the args to variables for readability
+CHOICE=$1
+PORT=$2
+LABEL=$3
+
+
+if [ "$CHOICE" = "-l" ]
+then
+	if [ "$PORT" != "" ]
+	then
+		PORT=""
+	fi
+fi
+
+# Check for minumum parameters
+if [ "$CHOICE" = "" ] || [ "$PORT" = "" ] && [ "$CHOICE" != "-l" ]
+then
+	echo "Not enough parameters."
+	Usage
+fi
+
+if [ "$PORT" != "" ]
+then
+	PORTNUM=`printf %04u $PORT`
+fi
+
+FULLTTYNAME="tx$PORTNUM"
+PORTPATH=/dev/$FULLTTYNAME
+
+if [ "$CHOICE" != "-l" ] && [ ! -c $PORTPATH ]
+then
+	echo "device $PORTPATH does not exist."
+	exit 1
+fi
+
+if [ "$LABEL" = "" ]
+then
+	LABEL=$DEFLABEL
+fi
+
+
+#
+# Handle specified command
+#
+case $CHOICE in
+	-a) # add
+		 # check if port already added
+		 searchtty=`echo $(grep $FULLTTYNAME /etc/inittab) `
+	 
+		 if [ "$searchtty" != "" ]
+		 then
+			 echo "$PORTPATH already added."
+			 exit 1
+		 fi
+
+		 echo "$PORTNUM:235:respawn:/sbin/agetty $LABEL $FULLTTYNAME"> $INIT_FILE	 
+		 cat $INIT_FILE >> /etc/inittab
+		 rm $INIT_FILE
+		 /sbin/init q
+		 ;;
+
+	-e) # enable
+		 cat /etc/inittab | sed -e s/$PORTNUM:235:off:/$PORTNUM:235:respawn:/ > $INIT_FILE
+		 cp $INIT_FILE /etc/inittab
+		 rm $INIT_FILE
+		 /sbin/init q
+		 ;;
+
+	-d) # disable
+		 cat /etc/inittab | sed -e s/$PORTNUM:235:respawn:/$PORTNUM:235:off:/ > $INIT_FILE
+ 		 cp $INIT_FILE /etc/inittab
+		 rm $INIT_FILE
+		 /sbin/init q
+		 ;;
+
+	-r) # remove
+		 # check if port exists
+		 searchtty=`echo $(grep $FULLTTYNAME /etc/inittab) `
+		 if [ "$searchtty" = "" ]
+		 then
+			 echo "$PORTPATH already removed."
+			 exit 1
+		 else
+			 # remove the tty entries from the inittab file
+			 grep -v "$FULLTTYNAME" /etc/inittab >/tmp/new_init
+			 mv /etc/inittab /etc/inittab.prev
+			 mv /tmp/new_init /etc/inittab
+			 /sbin/init q
+		 fi
+			 
+		 if [ -f ${TMPDIR}/TPAP$$ ]
+		 then
+			 rm ${TMPDIR}/TPAP$$
+		 fi
+		 ;;
+
+   -l) # list
+		 grep "tx[0-9][0-9][0-9][0-9]" /etc/inittab
+		 ;;
+
+    *) # default
+		 echo "Invalid command."
+		 Usage
+		exit 1
+		 ;;
+esac
+
+exit 0
+

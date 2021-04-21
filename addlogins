@@ -1,0 +1,72 @@
+#!/bin/sh
+#
+# Add login services to a range of TruePort ports
+#
+# Usage: addlogins [-t <baud_rate>] <first> <last>
+# -t switch indicates that the following parameter is the agetty baud rate
+#    to use. If not given, the tplogin script's default will be used.
+# <first> is the number of the first port.
+# <last> is the number of the last port.
+#
+
+
+PD=/etc/trueport	# Install directory
+PLOGIN=$PD/tplogin	# Login script for one port
+
+Usage ()
+{
+	echo "Usage: $0 [-t <baud_rate>] <first> <last>"
+	exit 1
+}
+
+
+
+# Check for gettydefs label switch
+if [ "$1" = "-t" ]
+then
+	BAUDRATE="$2"
+	shift 2
+else
+	BAUDRATE=""
+fi
+
+
+# Validate first port number
+if [ "$1" != "" ] && [ "`expr $1 : '\([0-9]*\)'`" = "$1" ]
+then
+	PNUM=$1
+else
+	echo "Invalid first port number."
+	Usage
+fi
+
+# Validate last port number
+if [ "$2" != "" ] && [ "`expr $2 : '\([0-9]*\)'`" = "$2" ]
+then
+	PLAST=$2
+else
+	echo "Invalid last port number."
+	Usage
+fi
+
+
+#
+# Create the logins
+#
+while [ $PNUM -le $PLAST ]
+do
+
+	echo $PLOGIN -a $PNUM $BAUDRATE
+	$PLOGIN -a $PNUM $BAUDRATE
+	if [ $? -ne 0 ]
+	then
+		echo "$PLOGIN failed for port $PNUM !"
+		echo "$0 aborted"
+		exit 1
+	fi
+
+	PNUM=`expr $PNUM + 1`
+done
+
+exit 0
+
