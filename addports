@@ -1,0 +1,331 @@
+#!/bin/sh
+#
+# Adds ports <start> through <end> and starts the daemon for each port
+#
+ 
+TPMODE=1                # Set to "m" for Full Mode
+TCPLISTENPORT=10000   # Default server listen TCP port - change to suit
+TCPCONNECTPORT=10001  # Default client connect TCP port - change to suit
+TCPIOPORT=33816  		# Default I/O Access connect TCP port - change to suit
+TCPPORT=$TCPLISTENPORT  # We default to server mode
+FORMAT=tx%04d
+MAX_TTY=255
+UDPOPT="--noudp"
+
+Usage ()
+{
+	echo "Usage : addports" 
+	echo "  Server Mode:"
+	echo "    addports [-l] [-hup] [-ssl] [-k <seconds>] [-server <host>]"
+	echo "             [-pf] [-opmode optimize_lan | low_latency | packet_idle_timeout | custom ]"
+	echo "             [-pktidletime <timeout>] [-openwaittime <seconds>] [-useudp | -noudp]"
+	echo "             [-trace <level>] <first port> <last port>"
+	echo "  Client Initiated Mode:"
+	echo "    addports [-l] [-hup] [-ssl] [-k <seconds>]"
+	echo "             [-pf] [-opmode optimize_lan | low_latency | packet_idle_timeout | custom ]"
+	echo "             [-pktidletime <timeout>] [-openwaittime <seconds>] [-useudp | -noudp]"
+	echo "             -client <host>[:<TCP#>]"
+	echo "             [-nodisc] [-retrytime <seconds>] [-retrynum <retry#>]"
+	echo "             [-initconnect] [-closedelaytime <seconds>] [-norestorenet]"
+	echo "             [-io mb_ascii | mb_rtu | io_api]"
+	echo "             [-trace <level>] <first port> <last port>"
+	exit 1
+}
+
+Chkarg ()
+{
+	if [ "$2" = "" ]; then
+		echo "  $1 option requires argument"
+		Usage
+		exit
+	fi
+	return
+}
+
+while [ "$1" != "" ]
+do
+	# Check for Lite mode switch
+	 if [ "$1" = "-l" ]; then
+		 TPMODE=0
+		 shift
+		 continue
+	 fi
+	  
+	 if [ "$1" = "-hup" ]; then
+		 HUP="-h"
+		 shift
+		 continue
+	 fi
+	 
+	 if [ "$1" = "-ssl" ]; then
+		 SSLMODE="-e"
+		 shift
+		 continue
+	 fi
+	 
+	 if [ "$1" = "-k" ]; then
+		KEEPALIVE=$1
+		KEEPALIVEARG=$2
+		Chkarg $1 $2
+		shift 2
+		continue
+	 fi
+
+	 if [ "$1" = "-server" ]; then
+		 SERVER="-S"
+		SERVERHOST=$2
+		Chkarg $1 $2
+		shift 2
+		continue
+	 fi
+	 
+	 if [ "$1" = "-pf" ]; then
+		 PF="-F"
+		 shift
+		continue
+	 fi
+	 
+	 if [ "$1" = "-opmode" ]; then
+		 OPMODE=-$1
+		OPMODEARG=$2
+		Chkarg $1 $2
+		shift 2
+		continue
+	 fi
+	 
+	 if [ "$1" = "-pktidletime" ]; then
+		 PKTIDLETIME=-$1
+		PKTIDLETIMEARG=$2
+		Chkarg $1 $2
+		shift 2
+		continue
+	 fi
+	 
+	 if [ "$1" = "-openwaittime" ]; then
+		 OPENWAITTIME=-$1
+		OPENWAITTIME_VAL=`expr $2`
+		Chkarg $1 $2
+		shift 2
+		continue
+	 fi
+
+	 if [ "$1" = "-useudp" ]; then
+		 UDPOPT="-$1"
+		 shift
+		continue
+	 fi
+
+	 if [ "$1" = "-noudp" ]; then
+		 UDPOPT="-$1"
+		 shift
+		continue
+	 fi
+	 
+	 if [ "$1" = "-client" ]; then
+		 CLIENT="-C"
+		CLIENTHOST=$2
+		TCPPORT=$TCPCONNECTPORT
+		Chkarg $1 $2
+		shift 2
+		continue
+	 fi
+	 
+	 if [ "$1" = "-nodisc" ]; then
+		 NODISC="-o"
+		 shift
+		 continue
+	 fi
+	 
+	 if [ "$1" = "-retrytime" ]; then
+		 RETRYTIME="-r"
+		RETRYTIME_VAL=`expr $2`
+		Chkarg $1 $2
+		shift 2
+		continue
+	 fi
+	 
+	 if [ "$1" = "-retrynum" ]; then
+		 RETRYNUM="-R"
+		 shift
+		 RETRYNUM_VAL=`expr $1`
+		 shift
+		 continue
+	 fi
+	 
+	 if [ "$1" = "-initconnect" ]; then
+		 INITCONNECT=-$1
+		 shift
+		 continue
+	 fi
+	 
+	 if [ "$1" = "-closedelaytime" ]; then
+		 CLOSEDELAYTIME=-$1
+		CLOSEDELAYTIME_VAL=`expr $2`
+		Chkarg $1 $2
+		shift 2
+		continue
+	 fi
+	 
+	 if [ "$1" = "-norestorenet" ]; then
+		 NORESTORENET=-$1
+		 shift
+		 continue
+	 fi
+	 
+	 if [ "$1" = "-io" ]; then
+		 CLIENTIO="-I"
+		 TCPPORT=$TCPIOPORT
+		 TPMODE=0
+		IO_TYPE=$2
+		Chkarg $1 $2
+		shift 2
+		continue
+	 fi
+	 
+	 if [ "$1" = "-trace" ]; then
+		 TRACE="-t"
+		DBLEVEL=`expr $2`
+		Chkarg $1 $2
+		shift 2
+		continue
+	 fi
+	 
+	 # Validate first port number
+	 if [ "$1" != "" ] && [ "`expr $1 : '\([0-9]*\)'`" = "$1" ]; then
+		 TTY=$1
+		 FIRST=$1
+		  FIRST_PORT=`expr $FIRST + $TCPPORT`
+	 else
+		 echo "Invalid first port number."
+		 Usage
+	 fi
+	 
+	 # Validate last port number
+	 if [ "$2" != "" ] && [ "`expr $2 : '\([0-9]*\)'`" = "$2" ]; then
+		 LAST=$2
+		 break
+	 else
+		 echo "Invalid last port number."
+		 Usage
+	 fi
+	 
+	 shift
+
+done
+
+if [ "$FIRST" = "" ] | [ "$LAST" = "" ]; then
+	echo " "
+	echo "Must specify both first and last port"
+	echo " "
+	Usage
+	exit 1
+fi
+
+
+if [ $FIRST -gt $LAST ]; then
+	echo " "
+	echo "Error: first port must be less than or equal to last port"
+	echo " "
+	exit 1
+fi
+
+if [ $TTY -gt $MAX_TTY ]; then
+	echo " "
+	echo "Error: first port number must be in range 0  to $MAX_TTY"
+	echo " "
+	exit 1
+fi
+
+if [ $LAST -gt $MAX_TTY ]; then
+	echo " "
+	echo "Error: last port number must be in range 0  to $MAX_TTY"
+	echo " "
+	exit 1
+fi
+
+if [ 	"$CLIENTIO" != "-I" ]; then
+	TCPPORT=`expr $TTY + $TCPPORT`
+fi
+
+if [ $TPMODE -eq 1 ]; then
+	MODEFLAG="-m"
+else
+	MODEFLAG="-n"
+	# UDP options are meaningless in Lite mode
+	UDPOPT=""
+fi
+
+
+if [ "$CLIENT" = "-C" ]; then
+	SERVER=""
+	TMP=`echo $CLIENTHOST | awk '{split($0,a,"]"); print a[2]}'`
+	TMP2=`echo $CLIENTHOST | awk '{split($0,a,"["); print a[2]}'`
+	#if not an IPv6 address then split on :
+	if [ "$TMP" = "" ] && [ "$TMP2" = "" ]; then
+		TMPTCPPORT=`echo $CLIENTHOST | awk '{split($0,a,":"); print a[2]}'`
+		CLIENTHOST=`echo $CLIENTHOST | awk '{split($0,a,":"); print a[1]}'`
+	# we have an IPv6 address
+	else
+		TMPTCPPORT=`echo $TMP | awk '{split($0,a,":"); print a[2]}'`
+		CLIENTHOST=`echo $CLIENTHOST | awk '{split($0,a,"]"); print a[1]}'`
+		CLIENTHOST="$CLIENTHOST"]
+	fi
+
+	if [ "$TMPTCPPORT" != "$CLIENTHOST" ] && [ "$TMPTCPPORT" != "" ]; then
+			TCPPORT="$TMPTCPPORT"
+			COPYTCPPORT="$TCPPORT"
+	else
+			COPYTCPPORT="$FIRST_PORT"
+	fi
+fi
+
+
+PORTINDEX=${FIRST}
+PORTRANGE=`expr ${LAST} - ${FIRST} + 1`
+
+# save base TCP port number for later
+TCPPORT_BASE=$TCPPORT
+
+#
+# Add entries to config.tp for the port range
+#
+	echo	tpadm -a $TCPPORT $MODEFLAG $SSLMODE $OPMODE $OPMODEARG $PKTIDLETIME $PKTIDLETIMEARG $PF $HUP $CLIENT $CLIENTHOST $RETRYTIME $RETRYTIME_VAL $RETRYNUM $RETRYNUM_VAL $NODISC $CLIENTIO $IO_TYPE $SERVER $SERVERHOST $TRACE $DBLEVEL $INITCONNECT $OPENWAITTIME $OPENWAITTIME_VAL $CLOSEDELAYTIME $CLOSEDELAYTIME_VAL $NORESTORENET $KEEPALIVE $KEEPALIVEARG $UDPOPT --index $PORTINDEX --range $PORTRANGE
+	tpadm -a $TCPPORT $MODEFLAG $SSLMODE $OPMODE $OPMODEARG $PKTIDLETIME $PKTIDLETIMEARG $PF $HUP $CLIENT $CLIENTHOST $RETRYTIME $RETRYTIME_VAL $RETRYNUM $RETRYNUM_VAL $NODISC $CLIENTIO $IO_TYPE $SERVER $SERVERHOST $TRACE $DBLEVEL $INITCONNECT $OPENWAITTIME $OPENWAITTIME_VAL $CLOSEDELAYTIME $CLOSEDELAYTIME_VAL $NORESTORENET $KEEPALIVE $KEEPALIVEARG $UDPOPT --index $PORTINDEX --range $PORTRANGE
+
+if [ $? -ne 0 ];	then
+	if [ "$CLIENT" = "-C" ]; then
+		echo tpadm add failed for range ${CLIENTHOST}:${TCPPORT} to ${PORTRANGE}
+	elif [ "$SERVER" = "-S" ]; then
+		echo tpadm add failed for range ${SERVERHOST}:${TCPPORT} to ${PORTRANGE}
+	else
+		echo tpadm add failed for range ${TCPPORT} to ${PORTRANGE}
+	fi
+	exit 1
+fi
+
+#
+# Start daemon
+#
+if [ "$CLIENT" = "-C" ]; then
+	tpadm -s ${CLIENTHOST}:${TCPPORT_BASE} --range ${PORTRANGE}
+elif [ "$SERVER" = "-S" ]; then
+	tpadm -s ${SERVERHOST}:${TCPPORT_BASE} --range ${PORTRANGE}
+else
+	tpadm -s ${TCPPORT_BASE} --range ${PORTRANGE}
+fi
+	
+if [ $? -ne 0 ]; then
+	if [ "$CLIENT" = "-C" ]; then
+		echo tpadm start failed for range ${CLIENTHOST}:${TCPPORT_BASE} to ${PORTRANGE}
+	elif [ "$SERVER" = "-S" ]; then
+		echo tpadmstart failed for range ${SERVERHOST}:${TCPPORT_BASE} to ${PORTRANGE}
+	else
+		echo tpadm start failed for range ${TCPPORT_BASE} to ${PORTRANGE}
+	fi
+	exit 1
+fi
+
+ 
+echo "$0 complete"
+
+

@@ -1,0 +1,84 @@
+#!/bin/bash
+#
+# Init file for TruePort daemon
+#
+# Copyright (c) 2003-2009  Perle Systems Limited
+#
+###########################################################################################
+#
+
+# chkconfig: 235 95 30
+# description: TruePort server daemon
+# 
+# processname: PRODUCT_NAMEd
+
+
+### BEGIN INIT INFO
+# Provides:       trueport
+# Required-Start: $network
+# Should-Start:   
+# Required-Stop:  $network
+# Should-Stop:    
+# Default-Start:  2 3 5
+# Default-Stop:   
+# Short-Description: TruePort server daemon
+# Description:       TruePort server daemon 
+#	allows you to use Perle device servers as a local tty 
+#	device. Read /usr/share/doc/trueport/README for more info. 
+### END INIT INFO
+ 
+DAEMON_ADM_BIN=/usr/bin/tpadm
+test -x $DAEMON_ADM_BIN || { echo "TruePort not installed"; 
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 5; fi; }
+DAEMON_ADM_OPTIONS="-s ALL"
+
+RETVAL=0
+
+case "$1" in
+	start)
+		if [ "`ps -e |grep trueportd|grep -v grep`" = "" ]; then
+			echo -n "Starting TruePort services: "
+			modprobe ptyx
+                        /bin/sleep 5
+			$DAEMON_ADM_BIN $DAEMON_ADM_OPTIONS
+			RETVAL=$?
+		fi
+		echo
+		;;
+	stop)
+		echo -n "Stopping TruePort services: "
+		killall -w trueportd
+		RETVAL=$?
+                /bin/sleep 5
+		modprobe -r ptyx
+		RETVAL=$?
+		if [ ! $RETVAL = 0 ]; then
+			echo "TruePort ptyx module could not be unloaded"
+		fi
+		RETVAL=0
+		echo
+		;;
+  	restart|reload)
+		$0 stop
+		$0 start
+		RETVAL=$?
+		;;
+	status)
+		echo -n "Checking for TruePort services: "
+		if [ "`ps -e |grep trueportd|grep -v grep`" = "" ]; then
+			echo "No trueportd daemons are running"
+		else
+			echo "trueportd daemons running"
+		fi
+    
+		RETVAL=0
+		echo
+		;;
+	*)
+		echo $"Usage: $0 {start|stop|restart|reload|status}"
+		RETVAL=1
+		echo
+		;;
+esac
+exit $RETVAL
