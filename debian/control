@@ -1,0 +1,12 @@
+Source: trueport
+Section: utils
+Priority: optional
+Maintainer: Ketut P. Kumajaya <ketut.kumajaya@gmail.com>
+Build-Depends: debhelper (>=11~), linux-headers
+Standards-Version: 4.1.4
+
+Package: trueport
+Architecture: any
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Perle TruePort userspace package for Debian

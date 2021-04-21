@@ -1,0 +1,131 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: trueport
+Source: <https://www.perle.com/downloads/drivers/trueport/linux/trueport-6.10.0-1.tgz>
+#
+# Please double check copyright with the licensecheck(1) command.
+
+Files:     Makefile
+           addlogins
+           addports
+           cleanports
+           mkinstalldirs
+           pkt_forwarding.c
+           pkt_forwarding.h
+           ptyx/Makefile
+           rmlogins
+           ssl_tp.c
+           ssl_tp.h
+           swirl.c
+           test_local_openssl.sh
+           testopenssl.c
+Copyright: __NO_COPYRIGHT_NOR_LICENSE__
+License:   __NO_COPYRIGHT_NOR_LICENSE__
+
+Files:     README
+           postinstall.sh
+           ptyx/ptyc.c
+           ptyx/ptym.c
+           ptyx/ptymod.c
+           ptyx/ptys.c
+           tp.h
+Copyright: 1999-2017 Perle Systems Limited.
+           1999-2020 Perle Systems Limited
+License:   __NO_LICENSE__
+
+Files:     trueport
+Copyright: 2003-2009 Perle Systems Limited
+License:   __UNKNOWN__
+ chkconfig: 235 95 30
+ description: TruePort server daemon
+
+Files:     trueport.h
+Copyright: 1999-2009 Perle Systems Limited.
+License:   __UNKNOWN__
+ *********************************************************************
+ .
+ Type definitions
+
+Files:     clparse.c
+Copyright: 1990-2016 Perle Systems Limited
+License:   __UNKNOWN__
+ Written by : Kamal Mortoza
+ .
+ CLPARSE is a general purpose command line token parser
+ designed to standardize command line parsing for utility
+ programs.
+ .
+ Command line tokens and the actions to perform are defined
+ using a parse table described in CLPARSE.H, the header file.
+ .
+ Maintenance history
+ .
+ Date		Name	Ver	Revision
+
+Files:     tpadm.c
+Copyright: 1999-2016 Perle Systems Limited.
+License:   __UNKNOWN__
+ Include files and external linkages
+
+Files:     trueportd.c
+Copyright: 1999-2016 Perle Systems Limited
+License:   __UNKNOWN__
+ Linux stdlib pro ttypes two functions (grantpt, unlockpt) only when
+ this symbol is defined. I don't know a "neater" way to do this, andma
+ they don't have a manual :-( -- REW
+
+Files:     clparse.h
+Copyright: 1990-2006 Perle Systems Limited
+License:   __UNKNOWN__
+ Written by : Kamal Mortoza
+ .
+ This header file provides the structure definitions and
+ constant definitions for the trueport proprietary command
+ line parser.
+ .
+ Maintenance history
+ .
+ Date		Name	Ver	Revision
+
+Files:     uninstall.sh
+Copyright: 2003-2009 Perle Systems Limited
+License:   __UNKNOWN__
+ determine the version of the running kernel to control next phase of install
+
+Files:     tar_install.sh
+Copyright: 2003-2009 Perle Systems Limited
+License:   __UNKNOWN__
+ In principle, this should do the build-and-install. However, normally
+ users are told to do the make, make install, etc.  steps separately
+ This allows an operator to diagnose and solve problems in one of the
+ steps more easily than if it's one "black box" of commands here. If
+ you encounter problems, we recommend you follow these steps in this
+ script one-by-one.
+ .
+ This routine checks the details of any current installation of openssl.
+
+Files:     ptyx/ptyx.h
+Copyright: 1999-2009 Perle Systems Limited
+License:   __UNKNOWN__
+ *****  global variables.
+
+Files:     tplogin
+Copyright: 1999-2009 Perle Systems Limited.
+License:   __UNKNOWN__
+ Add, enable, disable or remove getty login for a specified port.
+ .
+ Arguments are:
+ .
+ $1 - -a (add), -r (remove), -e (enable), -d (disable) -l (list)
+ $2 - port #:
+ $3 - baud rate
+ .
+ Set up globals
+
+Files:     tp_ver.h
+Copyright: 1999-2009 Perle Systems Limited.
+License:   __UNKNOWN__
+ *******************************************************************
+
+#----------------------------------------------------------------------------
+# Files marked as NO_LICENSE_TEXT_FOUND may be covered by the following
+# license/copyright files.

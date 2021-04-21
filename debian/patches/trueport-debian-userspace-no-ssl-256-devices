@@ -1,0 +1,99 @@
+Description: Perle TruePort userspace package for Debian
+ Build userspace package only (no ssl, 256 devices) without kernel driver.
+ .
+ trueport (6.10.0-1) UNRELEASED; urgency=low
+ .
+   * Initial release.
+
+Author: Ketut P. Kumajaya <ketut.kumajaya@gmail.com>
+
+---
+The information above should follow the Patch Tagging Guidelines, please
+checkout http://dep.debian.net/deps/dep3/ to learn about the format. Here
+are templates for supplementary fields that you might want to add:
+
+Origin: <vendor|upstream|other>, <url of original patch>
+Bug: <url in upstream bugtracker>
+Bug-Debian: https://bugs.debian.org/<bugnumber>
+Bug-Ubuntu: https://launchpad.net/bugs/<bugnumber>
+Forwarded: <no|not-needed|url proving that it has been forwarded>
+Reviewed-By: <name and email of someone who approved the patch>
+Last-Update: 2021-04-20
+
+--- trueport-6.10.0.orig/Makefile
++++ trueport-6.10.0/Makefile
+@@ -5,8 +5,6 @@ bindir=${exec_prefix}/bin
+ sbindir=${exec_prefix}/sbin
+ CC=gcc
+ 
+-SUBDIRS = ptyx
+-
+ OBJS =  trueportd.o clparse.o pkt_forwarding.o
+ 
+ ifdef SSL
+@@ -26,6 +24,8 @@ else
+ 	endif
+ endif
+ 
++CFLAGS += -DMAXINSTPORTS=256
++
+ # Uncomment line below if you want debug info
+ #CFLAGS += -g
+ 
+@@ -77,11 +77,8 @@ install:
+ 	install -m 755 trueport $(DESTDIR)/etc/init.d/trueport
+ 	echo /lib/modules/`uname -r`/misc >> /tmp/files
+ 
+-	mkdir -p $(DESTDIR)/usr/share/doc/trueport/ptyx
++	mkdir -p $(DESTDIR)/usr/share/doc/trueport
+ 	install README $(DESTDIR)/usr/share/doc/trueport/
+-	install ptyx/* $(DESTDIR)/usr/share/doc/trueport/ptyx
+-	install tp.h $(DESTDIR)/usr/share/doc/trueport/
+-	install tp_ver.h $(DESTDIR)/usr/share/doc/trueport/
+ 
+ clean:
+ 	rm -f *.o trueportd tpadm swirl *~
+--- trueport-6.10.0.orig/postinstall.sh
++++ trueport-6.10.0/postinstall.sh
+@@ -54,7 +54,7 @@ rm -f /etc/modprobe.d/${MODPROBED_NAME}
+ echo "Updating ${MODPROBE_CONFIG}"
+ echo "# ptyx module support" >> ${MODPROBE_CONFIG}
+ echo "alias char-major-62 ptyx" >> ${MODPROBE_CONFIG}
+-echo "options ptyx max_installed_ports=${MAXINSTPORTS}" >> ${MODPROBE_CONFIG}
++echo "options ptyx max_installed_ports=256" >> ${MODPROBE_CONFIG}
+ if [ -x /sbin/depmod -a -e /lib/modules/`/bin/uname -r`/modules.dep ] ; then
+ 	/sbin/depmod -a 
+ fi
+--- trueport-6.10.0.orig/tpadm.c
++++ trueport-6.10.0/tpadm.c
+@@ -34,7 +34,7 @@ Module: TruePort Admin Tool
+ #include <termios.h>
+ #include <getopt.h>
+ #include "tp.h"
+-#include "tp-autogen.h"
++/*#include "tp-autogen.h"*/
+ #include "pkt_forwarding.h"
+ 
+ /****************************************************************************
+--- trueport-6.10.0.orig/trueportd.c
++++ trueport-6.10.0/trueportd.c
+@@ -1295,13 +1295,18 @@ int open_tty()
+ 		if( lstat( slave_ttyname, &stat_buf ) < 0 )
+ 		{
+ 			trace( tl_status, "Creating slave device node: %s \n", slave_ttyname );
+-			sprintf( buf, "mknod %s c %d %d", slave_ttyname, PTYX_SLAVE_MAJOR, minor_number );
++			sprintf( buf, "mknod -m666 %s c %d %d", slave_ttyname, PTYX_SLAVE_MAJOR, minor_number );
+ 			if( system( buf ) == -1 ) 
+ 			{
+ 				trace( tl_error, "Could not create slave device node: %s\n", slave_ttyname  );
+ 				trace( tl_error, "  - %s\n", strerror( errno ) );
+ 				exit(-1);
+ 			}
++#include <grp.h>
++{
++  struct group *g=getgrnam("dialout");
++  if (g) chown(slave_ttyname,-1,g->gr_gid);
++}
+ 		}
+ 
+ 		if( lstat( master_ttyname, &stat_buf ) < 0 )
